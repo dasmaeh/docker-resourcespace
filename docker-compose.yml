@@ -1,41 +1,47 @@
-resourcespace:
-  build: .
-  ports:
-  - "80:80"
-# If running behind a proxy container, expose the ports instead
-# and link the proxy container to this one.
-#  expose:
-#  - "80"
-  links:
-  - mariadb:mariadb
-  - postfix:postfix
-  volumes_from:
-  - resourcespace-data
-resourcespace-data:
-  image: juanluisbaptiste/resourcespace
-  volumes:
-  - ./volumes/filestore:/var/www/html/filestore
-  - ./volumes/config/config.php:/var/www/html/include/config.php
-  - ./backups:/backups
-  - /etc/localtime:/etc/localtime:ro
-  command: /bin/true
+version: '2'
 
-mariadb:
-  image: centos/mariadb:latest
-  expose:
-  - "3306"
-  volumes_from:
-    - mariadb-data
-  environment:
-      MYSQL_ROOT_PASSWORD: changeme
-mariadb-data:
-  image: centos/mariadb:latest
-  volumes:
-  - ./volumes/mysql:/var/lib/mysql
-  - "/etc/localtime:/etc/localtime:ro"
-  command: /bin/true
-postfix:
-   image: juanluisbaptiste/postfix:latest
-   expose:
-   - "25"
-   env_file: ../../credentials-smtp.env
+services:
+    app:
+        container_name: resourcespace
+        hostname: fotoarchiv
+        domainname: cbjck.de
+        image: dasmaeh/docker-resourcespace
+        build: 
+            context: ./src/docker-resourcespace
+        restart: always
+        ports:
+            - "80"
+        environment:
+            VIRTUAL_HOST: "fotos.domain.tld"
+            LETSENCRYPT_HOST: "fotos.domain.tld"
+            LETSENCRYPT_EMAIL: "admin@domain.tld"
+        depends_on: 
+            - db
+        links:
+            - db:mysql
+        external_links:
+            - ldap:ldap
+        networks:
+            - outside
+            - inside
+
+    db:
+        image: mariadb
+        container_name: resourcespace-mariadb
+        environment:
+            MYSQL_ROOT_PASSWORD: "<My-secret-pw>"
+            MYSQL_DATABASE: "resourcespace"
+            MYSQL_USER: "resourcespace"
+            MYSQL_PASSWORD: "<Another-secret-pw>"
+        volumes:
+            - ./db:/var/lib/mysql
+        networks:
+            - inside
+
+
+networks:
+    inside:
+    outside:
+        external:
+            name: proxy-tier
+
