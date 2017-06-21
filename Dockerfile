@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.9.16
+FROM debian:stretch
 MAINTAINER Juan Luis Baptiste <juan.baptiste@gmail.com>
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -10,13 +10,15 @@ ENV APACHE_LOCK_DIR /var/lock/apache2
 ENV APACHE_PID_FILE /var/run/apache2.pid
 
 # Update System and install dependencies
-RUN add-apt-repository ppa:mc3man/trusty-media && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get -y upgrade && \
-    apt-get -y install apache2 php5 php5-dev php5-gd php5-mysql subversion vim \
+    apt-get -y install apache2 php php-dev php-gd php-mysql subversion vim \
                        imagemagick ghostscript antiword xpdf mysql-client \
                        libav-tools postfix libimage-exiftool-perl cron wget \
-                       ffmpeg zip php5-imap libphp-phpmailer
+                       ffmpeg zip php-imap libphp-phpmailer
+
+# Clean up APT when done.
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Enable apache mods.
 RUN a2enmod php5 && \
